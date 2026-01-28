@@ -18,13 +18,13 @@ function Landingpage() {
                             <div className="exampleRoadmap">
                                 <img src="exampleRoadmap.png" alt="Example Roadmap" />
                             </div>
-                            <Link to="/signup" className="cta-button hero-cta">Join TeamUp Today</Link>
+                            <Link to="/signup" className="cta-button hero-cta">Join CasaTrain Today</Link>
                         </div>
                     </div>
                     <div className="roadmap-info">
                         <h2>The Roadmap to Success</h2>
                         <p>
-                            casatrain's core feature allows you to build and share interactive "roadmaps." These structured learning paths guide players through drills and challenges, turning solo practice into a powerful tool for development.
+                            Casatrain's core feature allows you to build and share interactive "roadmaps." These structured learning paths guide players through drills and challenges, turning solo practice into a powerful tool for development.
                         </p>
                     </div>
 
