@@ -342,7 +342,10 @@ function TaskSidebar({ task, onClose, initialPlayerId }: { task: Task; onClose: 
       <CoachResources loadingCoachResources={loadingCoachResources} coachResources={coachResources} refetch={fetchCoachResources} />
       { teamInfo?.is_user_coach && (
         <div className="coach-upload-section">
-          <div>Coaches, upload any resources for this task here:</div>
+          <div>Coaches, upload any resources for this task here: </div>
+          <div>Supported Image Types: JPEG/JPG, PNG, WebP, GIF, AVIF, SVG</div>
+          <div>Supported Video Types: mp4 (If your video is not in mp4 format, please convert it. Sorry for the inconvenience)</div>
+          <div><strong>Warning</strong>: HEIF/HEIC are not supported yet</div>
           <form onSubmit={coachSubmit}>
             <input 
               ref={coachFileInputRef}
@@ -382,6 +385,9 @@ function TaskSidebar({ task, onClose, initialPlayerId }: { task: Task; onClose: 
           {!hasSubmitted && (
             <>
               <div>Upload your media:</div>
+              <div>Supported Image Types: JPEG/JPG, PNG, WebP, GIF, AVIF, SVG</div>
+              <div>Supported Video Types: mp4 (If your video is not in mp4 format, please convert it. Sorry for the inconvenience)</div>
+              <div><strong>Warning</strong>: HEIF/HEIC are not supported yet</div>
               <form onSubmit={playerAddMedia}>
                 <input
                   ref={playerFileInputRef}
