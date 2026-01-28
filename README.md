@@ -1,33 +1,33 @@
-Welcome! This is a scalable full-stack web application that I have developed and deployed from scratch.
-Tech Stack: Typescript, React, Node (Express), SQL, AWS RDS, AWS S3, AWS Cloudfront, Vercel
+Welcome! This is a scalable full-stack web application that I have developed and deployed from scratch.<br>
+**Tech Stack**: Typescript, React, Node (Express), SQL, AWS RDS, AWS S3, AWS Cloudfront, Vercel<br>
 
-**If you are a recruiter: please use these credentials to log into a demo account and play around with the features I have developed**
-Username: demo111
+**If you are a recruiter: please use these credentials to log into a demo account and play around with the features I have developed**<br>
+Username: demo111<br>
 Password: demo
 
-If the website isn't loading, I might have recently pushed changes to the server, so please hard refresh the page.
+If the website isn't loading, I might have recently pushed changes to the server, so please hard refresh the page.<br>
 
-___________________________________________________________________________________________________________________
+___________________________________________________________________________________________________________________<br>
 
-To install project dependencies on your device:
+To install project dependencies on your device:<br>
 
-1. Clone Repo
-2. cd into frontend
-3. Run: npm install
-4. cd into backend
-5. Run: npm install
+1. Clone Repo<br>
+2. cd into frontend<br>
+3. Run: npm install<br>
+4. cd into backend<br>
+5. Run: npm install<br>
 
-___________________________________________________________________________________________________________________
+___________________________________________________________________________________________________________________<br>
 
-To push changes to the production server:
-Vercel redeploys whenever I push changes to this github repository
+To push changes to the production server:<br>
+Vercel redeploys whenever I push changes to this github repository<br>
 
-If changes are made in the frontend directory:
-1. cd into the frontend directory
-2. Run: npm run build
-3. Rename the dist directory that will be generated in the frontend directory to dist_frontend
-4. Drag the dist_frontend to backend folder
-5. Push both frontend and backend directory to github
+If changes are made in the frontend directory:<br>
+1. cd into the frontend directory<br>
+2. Run: npm run build<br>
+3. Rename the dist directory that will be generated in the frontend directory to dist_frontend<br>
+4. Drag the dist_frontend to backend folder<br>
+5. Push both frontend and backend directory to github<br>
 
-If changes are made in the backend directory:
-1. Push backend directory to github
+If changes are made in the backend directory:<br>
+1. Push backend directory to github<br>
