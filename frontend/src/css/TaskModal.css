@@ -2,6 +2,10 @@
     display: flex;
     flex-direction: column;
     width: 500px;
+    /* 1. Set a limit on height */
+    max-height: 80vh; /* Adjust as needed (80% of viewport height) */
+    /* 2. Enable vertical scrolling */
+    overflow-y: auto;
 }
 
 .task-modal .close-button {
