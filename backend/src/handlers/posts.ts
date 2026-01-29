@@ -4,7 +4,9 @@ import { User } from "../types/User";
 import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from 'sharp';
 import crypto from 'crypto';
-import {getSignedUrl} from "@aws-sdk/cloudfront-signer"
+// Note: We alias this to avoid confusion with the CloudFront Signer
+import {getSignedUrl as getS3SignedUrl } from "@aws-sdk/s3-request-presigner"
+import {getSignedUrl as getCloudFrontSignedUrl} from "@aws-sdk/cloudfront-signer"
 import { getProfilePictureUrl } from "../lib/getMediaLinkHelper";
 import s3 from "../s3";
 import cloudFront from "../cloudFront";
@@ -31,7 +33,7 @@ export const getCoachResources = async (req: Request, res: Response) => {
         // Calculate expiration time in seconds (Unix timestamp)
         const expirationDate = new Date(Date.now() + 3600 * 1000); // 1 hour from now
         const posts = await Promise.all(result.rows.map(async (post) => {
-            const url = getSignedUrl({
+            const url = getCloudFrontSignedUrl({
                 url: `https://${process.env.CLOUDFRONT_DOMAIN}/${post.media_name}`,
                 keyPairId: process.env.CLOUDFRONT_KEY_PAIR_ID!,
                 privateKey: process.env.CLOUDFRONT_PRIVATE_KEY!,
@@ -107,7 +109,7 @@ export const getPlayerSubmissions = async (req: Request, res: Response) => {
         // Attach the signed cdn URL to each post
         const expirationDate = new Date(Date.now() + 3600 * 1000); // 1 hour from now
         const submissions = await Promise.all(result.rows.map(async (submission) => {
-            const url = getSignedUrl(
+            const url = getCloudFrontSignedUrl(
                 {
                     url: `https://${process.env.CLOUDFRONT_DOMAIN}/${submission.media_name}`,
                     keyPairId: process.env.CLOUDFRONT_KEY_PAIR_ID!,
@@ -182,7 +184,7 @@ export const getSubmission = async (req: Request, res: Response) => {
 
         const expirationDate = new Date(Date.now() + 3600 * 1000); // 1 hour from now
         const submissions = await Promise.all(postsResult.rows.map(async (post) => {
-            const url = getSignedUrl({
+            const url = getCloudFrontSignedUrl({
                 url: `https://${process.env.CLOUDFRONT_DOMAIN}/${post.media_name}`,
                 keyPairId: process.env.CLOUDFRONT_KEY_PAIR_ID!,
                 privateKey: process.env.CLOUDFRONT_PRIVATE_KEY!,
@@ -236,7 +238,7 @@ export const getMySubmissions = async (req: Request, res: Response) => {
         // Attach the S3 URL to each post
         const expirationDate = new Date(Date.now() + 3600 * 1000); // 1 hour from now
         const submissions = await Promise.all(result.rows.map(async (submission) => {
-            const url = getSignedUrl({
+            const url = getCloudFrontSignedUrl({
                 url: `https://${process.env.CLOUDFRONT_DOMAIN}/${submission.media_name}`,
                 keyPairId: process.env.CLOUDFRONT_KEY_PAIR_ID!,
                 privateKey: process.env.CLOUDFRONT_PRIVATE_KEY!,
@@ -465,59 +467,77 @@ export const postTeamImage = async (req: Request, res: Response) => {
 
 }
 
+export const getPresignedUploadUrl = async (req:Request, res:Response) => {
+    const user = req.user as User;
+    if (!user) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+    }
+
+    // Frontend sends ?fileType=video/mp4
+    const fileType = req.query.fileType as string; 
+    if (!fileType) {
+        res.status(400).json({ error: 'File type is required' });
+        return;
+    }
+
+    const extension = fileType.split('/')[1];
+    const randomName = crypto.randomBytes(32).toString('hex');
+    const key = `${randomName}.${extension}`;
+
+    const command = new PutObjectCommand({
+        Bucket: process.env.BUCKET_NAME,
+        Key: key,
+        ContentType: fileType, 
+    });
+
+    try {
+        // Generate a temporary URL that allows the frontend to PUT the file directly to S3
+        const uploadUrl = await getS3SignedUrl(s3, command, { expiresIn: 60 }); // valid for 60 seconds
+        
+        res.json({ 
+            uploadUrl, 
+            key // Frontend needs this key to send back to postCoachResource
+        });
+    } catch (error) {
+        console.error("Error generating presigned URL:", error);
+        res.status(500).json({ error: 'Failed to generate upload URL' });
+    }
+}
+
 export const postCoachResource = async (req: Request, res: Response) => {
     const user = req.user as User;
     if (!user) {
         res.status(401).json({ error: 'User not authenticated' });
         return;
     }
-    if (!req.file) {
-        res.status(400).json({ error: 'No file uploaded' });
-        return;
-    }
-    // check that taskId is provided
-    if (!req.body.taskId) {
+
+    // CHANGED: We no longer look for req.file. 
+    // The file is ALREADY in S3 (uploaded by frontend).
+    // We expect the 'key' (filename) and 'mediaType' from the body.
+
+    const { taskId, caption, mediaKey, mediaType } = req.body;
+
+    if (!taskId) {
         res.status(400).json({ error: 'Task ID is required' });
         return;
     }
-
-    // Resize the image
-    // Actual image data that needs to be sent to s3
-    const isImage = req.file.mimetype.startsWith('image/');
-    let buffer: Buffer;
-
-    if (isImage) {
-        buffer = await sharp(req.file.buffer).resize({ width: 400 }).toBuffer();
-    } else {
-        buffer = req.file.buffer; // Don't process videos or other files
+    if (!mediaKey) {
+        res.status(400).json({ error: 'Media Key (filename) is required' });
+        return;
     }
-    const imageName = randomImageName();
-    const params = {
-        Bucket: process.env.BUCKET_NAME,
-        Key: imageName,
-        Body: buffer,
-        ContentType: req.file.mimetype,
-    };
 
-    const command = new PutObjectCommand(params);
+    // Determine format
+    // e.g., if frontend sent 'video/mp4', we categorize as 'video'
+    const mediaFormat = (mediaType && mediaType.startsWith('image')) ? 'image' : 'video';
+
     try {
-       await s3.send(command); 
-    } catch (error) {
-       console.error("Error uploading to S3:", error);
-       res.status(500).json({ error: 'Failed to upload resource' });
-       return;
-    }
-    // save details to the database
-    const caption = req.body.caption;
-    const taskId = Number(req.body.taskId);
-    const mediaFormat = isImage ? 'image' : (req.file.mimetype.startsWith('video/') ? 'video' : 'other');
-    try {
-        // Insert post info to the database
+        // Insert post info to the database using the Key provided by frontend
         await pool.query(
             'INSERT INTO posts (user_id, task_id, caption, media_name, media_type, media_format) VALUES ($1, $2, $3, $4, $5, $6)',
-            [user.user_id, taskId, caption, imageName, 'coach_resource', mediaFormat]
+            [user.user_id, Number(taskId), caption, mediaKey, 'coach_resource', mediaFormat]
         );
-        res.status(201).json({ message: 'Resource uploaded successfully' });
+        res.status(201).json({ message: 'Resource saved successfully' });
     } catch (error) {
         console.error("Error inserting post:", error);
         res.status(500).json({ error: 'Failed to save resource details' });
@@ -531,51 +551,28 @@ export const postPlayerSubmission = async (req: Request, res: Response) => {
         res.status(401).json({ error: 'User not authenticated' });
         return;
     }
-    if (!req.file) {
-        res.status(400).json({ error: 'No file uploaded' });
-        return;
-    }
-    // check that taskId is provided
-    if (!req.body.taskId) {
+
+    // CHANGED: No req.file logic. Expecting S3 key from body.
+    const { taskId, mediaKey, mediaType } = req.body;
+
+    if (!taskId) {
         res.status(400).json({ error: 'Task ID is required' });
         return;
     }
-
-    const isImage = req.file.mimetype.startsWith('image/');
-    let buffer: Buffer;
-
-    if (isImage) {
-        buffer = await sharp(req.file.buffer).resize({ width: 400 }).toBuffer();
-    } else {
-        buffer = req.file.buffer; // Don't process videos or other files
-    }
-    const imageName = randomImageName();
-    const params = {
-        Bucket: process.env.BUCKET_NAME,
-        Key: imageName,
-        Body: buffer,
-        ContentType: req.file.mimetype,
-    };
-    
-    const command = new PutObjectCommand(params);
-    try {
-       await s3.send(command); 
-    } catch (error) {
-       console.error("Error uploading to S3:", error);
-       res.status(500).json({ error: 'Failed to upload resource' });
-       return;
+    if (!mediaKey) {
+        res.status(400).json({ error: 'Media Key is required' });
+        return;
     }
 
-    // save details to the database
-    const taskId = Number(req.body.taskId);
-    const mediaFormat = isImage ? 'image' : (req.file.mimetype.startsWith('video/') ? 'video' : 'other');
+    const mediaFormat = (mediaType && mediaType.startsWith('image')) ? 'image' : 'video';
+
     try {
         // Insert post info to the database
         await pool.query(
             'INSERT INTO posts (user_id, task_id, media_name, media_type, media_format) VALUES ($1, $2, $3, $4, $5)',
-            [user.user_id, taskId, imageName, 'player_submission', mediaFormat]
+            [user.user_id, Number(taskId), mediaKey, 'player_submission', mediaFormat]
         );
-        res.status(201).json({ message: 'Resource uploaded successfully' });
+        res.status(201).json({ message: 'Resource saved successfully' });
     } catch (error) {
         console.error('Error inserting post:', error);
         res.status(500).json({ error: 'Internal server error' });
