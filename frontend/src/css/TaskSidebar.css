@@ -14,6 +14,19 @@
     gap: 16px;
 }
 
+.description-container{
+    border: 3px solid black;
+    border-radius: 4px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+}
+
+.description-container h3 {
+    align-self: center;
+    font-size: 2rem;
+}
+
 .edit-description-button {
     padding: 8px 20px;
     background: #e0e0e0;
@@ -96,6 +109,18 @@
   white-space: pre-wrap; /* preserves newlines and wraps long lines */
   word-break: break-word;
   margin: 0 0 12px 0;
+}
+
+.player-medias {
+    border: 3px solid black;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.upload-interface {
+    border: 3px solid black;
+    border-radius: 4px;
+    padding: 4px;
 }
 
 .submitted_message {

@@ -362,46 +362,48 @@ function TaskSidebar({ task, onClose, initialPlayerId }: { task: Task; onClose: 
   return (
     <div className="task-sidebar">
       <h2>{task.title}</h2>
-      <h3>Task Description</h3>
-      {editingDescription ? (
-        <div style={{ marginBottom: "12px" }}>
-          <textarea
-            value={newDescription}
-            onChange={e => setNewDescription(e.target.value)}
-            rows={3}
-            style={{ width: "100%", borderRadius: "6px", padding: "8px" }}
-          />
-          <button
-            className="save-button"
-            onClick={handleSaveDescription}
-            disabled={savingDescription}
-          >
-            {savingDescription ? "Saving..." : "Save"}
-          </button>
-          <button
-            className="close-button"
-            onClick={() => setEditingDescription(false)}
-          >
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <>
-          {!task.description || task.description.trim() === "" ? (
-            <p>No description provided.</p>
-          ) : (
-            <p className="task-description">{task.description}</p>
-          )}
-          {teamInfo?.is_user_coach && (
+      <div className="description-container">
+        <h3>Task Description</h3>
+        {editingDescription ? (
+          <div style={{ marginBottom: "12px" }}>
+            <textarea
+              value={newDescription}
+              onChange={e => setNewDescription(e.target.value)}
+              rows={3}
+              style={{ width: "100%", borderRadius: "6px", padding: "8px" }}
+            />
             <button
-              className="edit-description-button"
-              onClick={() => setEditingDescription(true)}
+              className="save-button"
+              onClick={handleSaveDescription}
+              disabled={savingDescription}
             >
-              Edit Description
+              {savingDescription ? "Saving..." : "Save"}
             </button>
-          )}
-        </>
-      )}
+            <button
+              className="close-button"
+              onClick={() => setEditingDescription(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <>
+            {!task.description || task.description.trim() === "" ? (
+              <p>No description provided.</p>
+            ) : (
+              <p className="task-description">{task.description}</p>
+            )}
+            {teamInfo?.is_user_coach && (
+              <button
+                className="edit-description-button"
+                onClick={() => setEditingDescription(true)}
+              >
+                Edit Description
+              </button>
+            )}
+          </>
+        )}
+      </div>
       <CoachResources loadingCoachResources={loadingCoachResources} coachResources={coachResources} refetch={fetchCoachResources} />
       { teamInfo?.is_user_coach && (
         <div className="coach-upload-section">
@@ -430,24 +432,27 @@ function TaskSidebar({ task, onClose, initialPlayerId }: { task: Task; onClose: 
         <PlayerSubmissions taskId={task.task_id} loadingComments={loadingComments} initialPlayerId={initialPlayerId} />
       )}
       {!teamInfo?.is_user_coach && (
-        <>
-          {/* If submitted, show Submitted Media */}
-          {hasSubmitted ? (
-            <h3 style={{ color: "#198754" }}>
-              Submitted Media
-            </h3>
-          ) : (
-            <h3>My Media</h3>
-          )}
-          
-          {myMedia ? (
-            <MyMedias loadingMySubmissions={loadingMyMedia} media={myMedia} refetch={fetchMyMedia} hasSubmitted={hasSubmitted} />
-          ) : (
-            <p>No media uploaded yet.</p>
-          )}
+        <div>
+          <div className="player-medias">
+            {/* If submitted, show Submitted Media */}
+            {hasSubmitted ? (
+              <h3 style={{ color: "#198754" }}>
+                Submitted Media
+              </h3>
+            ) : (
+              <h3>My Media</h3>
+            )}
+            
+            {myMedia ? (
+              <MyMedias loadingMySubmissions={loadingMyMedia} media={myMedia} refetch={fetchMyMedia} hasSubmitted={hasSubmitted} />
+            ) : (
+              <p>No media uploaded yet.</p>
+            )}
+          </div>
+          <br></br>
           {!hasSubmitted && (
-            <>
-              <div>Upload your media:</div>
+            <div className="upload-interface">
+              <h3>Upload your media:</h3>
               <div>Supported Image Types: JPEG/JPG, PNG, WebP, GIF, AVIF, SVG</div>
               <div>Supported Video Types: mp4 (If your video is not in mp4 format, please convert it. Sorry for the inconvenience)</div>
               <div><strong>Warning</strong>: HEIF/HEIC are not supported yet</div>
@@ -465,8 +470,9 @@ function TaskSidebar({ task, onClose, initialPlayerId }: { task: Task; onClose: 
                   {addingMedia ? "Adding..." : "Add Media"}
                 </button>
               </form>
-            </>
+            </div>
           )}
+          <br></br>
           {!loadingMyMedia && (
             <>
               {/* Only show the submit button if user has something to submit, and hasn't submitted yet */}
@@ -510,7 +516,7 @@ function TaskSidebar({ task, onClose, initialPlayerId }: { task: Task; onClose: 
             </>
           )}
           <CommentSection loadingComments={loadingComments} player_id={user.user_id} task_id={task.task_id}/>
-        </>
+        </div>
       )}
       <br></br>
       <button
