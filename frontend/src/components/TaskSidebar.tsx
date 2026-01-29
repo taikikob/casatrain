@@ -39,6 +39,43 @@ function TaskSidebar({ task, onClose, initialPlayerId }: { task: Task; onClose: 
   const coachFileInputRef = useRef<HTMLInputElement>(null); 
   const playerFileInputRef = useRef<HTMLInputElement>(null);
 
+  // HELPER: Handle s3 upload
+  const uploadToS3 = async (file: File): Promise<string | null> => {
+    try {
+      // 1. Get the Presigned URL from your backend
+      // Encode the type to handle special characters like "/" safely
+      const urlRes = await fetch(`/api/posts/upload-url?fileType=${encodeURIComponent(file.type)}`, {
+        credentials: 'include'
+      });
+
+      if (!urlRes.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const { uploadUrl, key } = await urlRes.json();
+
+      // 2. Upload the file DIRECTLY to S3 (bypassing your server)
+      const s3Res = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type // S3 requires the Content-Type to match what was signed
+        },
+        body: file,
+      });
+
+      if (!s3Res.ok) {
+        throw new Error("Failed to upload to S3");
+      }
+      // Return the Key so we can save it to our DB
+      return key;
+
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Upload failed. Please try again.", { position: 'top-center' });
+      return null;
+    }
+  }
+
   const fetchCoachResources = async () => {
     if (teamInfo === null || task.task_id === undefined) {
       console.error("Team information or task ID is not available.");
@@ -129,72 +166,98 @@ function TaskSidebar({ task, onClose, initialPlayerId }: { task: Task; onClose: 
   }, [teamInfo, task]);
 
   const coachSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    setAddingMedia(true);
     event.preventDefault();
-    if (!teamInfo) return;
+    if (!teamInfo || !coachFile) return;
 
-    const formData = new FormData();
-    if (coachFile) {
-      formData.append("media", coachFile);
+    setAddingMedia(true);
+
+    // 1. Upload file to S3 first
+    const s3Key = await uploadToS3(coachFile);
+    if (!s3Key) {
+      setAddingMedia(false);
+      return; // Stop if S3 upload failed
     }
-    formData.append("caption", caption);
-    formData.append("taskId", String(task.task_id));
+
+    // 2. Send metadata to backend (JSON, not FormData)
     const res = await fetch(`/api/posts/${teamInfo.team_id}/coach`, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json', // Important: Changing to JSON
+      },
+      body: JSON.stringify({
+        taskId: task.task_id,
+        caption: caption,
+        mediaKey: s3Key, // Send the key we got from S3
+        mediaType: coachFile.type // Send the mime type
+      }),
       credentials: 'include'
     });
+
     if (!res.ok) {
       const errorData = await res.json();
       console.error("Failed to submit coach post:", errorData.error); 
+      setAddingMedia(false);
       return;
     }
+
     const data = await res.json();
     if (res.status === 201) {
-      // show a success toast notification
       toast.success(data.message, { position: 'top-center' });
     }
+
+    // Cleanup
     setCoachFile(null);
     setCaption("");
-    if (coachFileInputRef.current) {
-      coachFileInputRef.current.value = ""; // <-- Reset the file input
-    }
+    if (coachFileInputRef.current) coachFileInputRef.current.value = "";
     fetchCoachResources();
     setAddingMedia(false);
   };
 
   const playerAddMedia = async (event: React.FormEvent<HTMLFormElement>) => {
-    if (!teamInfo || !task.task_id) {
-      toast.error("Team information or task ID is not available.", { position: "top-center" });
+    event.preventDefault();
+    if (!teamInfo || !task.task_id || !playerFile) {
+      toast.error("Missing information or file.", { position: "top-center" });
       return;
     }
-    setAddingMedia(true);
-    event.preventDefault();
 
-    const formData = new FormData();
-    if (playerFile) {
-      formData.append("media", playerFile);
+    setAddingMedia(true);
+
+    // 1. Upload file to S3 first
+    const s3Key = await uploadToS3(playerFile);
+    if (!s3Key) {
+      setAddingMedia(false);
+      return; //Stop if S3 upload failed
     }
-    formData.append("taskId", String(task.task_id));
+
+    // 2. Send metadata to backend (JSON, not FormData)
     const res = await fetch(`/api/posts/${teamInfo.team_id}/player`, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        taskId: task.task_id,
+        mediaKey: s3Key, // Send the key
+        mediaType: playerFile.type // Send the mime type
+      }),
       credentials: 'include'
     });
+
     if (!res.ok) {
       const errorData = await res.json();
       console.error("Failed to submit player post:", errorData.error);
+      setAddingMedia(false);
       return;
     }
+
     const data = await res.json();
     if (res.status === 201) {
-      // show a success toast notification
       toast.success(data.message, { position: 'top-center' });
     }
+
+    // Cleanup
     setPlayerFile(null);
-    if (playerFileInputRef.current) {
-      playerFileInputRef.current.value = ""; // <-- Reset the file input
-    }
+    if (playerFileInputRef.current) playerFileInputRef.current.value = "";
     fetchMyMedia();
     setAddingMedia(false);
   };
