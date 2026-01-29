@@ -2,8 +2,8 @@ Welcome! This is a scalable full-stack web application that I have developed and
 **Tech Stack**: Typescript, React, Node (Express), SQL, AWS RDS, AWS S3, AWS Cloudfront, Vercel<br>
 
 **If you are a recruiter: please use these credentials to log into a demo account and play around with the features I have developed**<br>
-Username: demo111<br>
-Password: demo
+Username: **demo111**<br>
+Password: **demo**
 
 If the website isn't loading, I might have recently pushed changes to the server, so please hard refresh the page.<br>
 
