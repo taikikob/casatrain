@@ -1,6 +1,6 @@
 <h1>Casatrain</h1>
 Welcome! This is a scalable full-stack web application that I have developed and deployed from scratch.<br>
-**Tech Stack**: Typescript, React, Node (Express), SQL, AWS RDS, AWS S3, AWS Cloudfront, Vercel<br>
+<b>Tech Stack</b>: Typescript, React, Node (Express), SQL, AWS RDS, AWS S3, AWS Cloudfront, Vercel<br>
 
 https://www.casatrain.com/
 
