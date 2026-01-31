@@ -7,7 +7,7 @@ function About() {
             <div className="content">
                 <img src="/taiki.png" alt="Taiki Kobayashi" className="picture"/>
                 <div className="description">
-                    <div>Hi! I'm Taiki, a software engineer and the creator of casatrain.</div>
+                    <div>Hi! I'm Taiki, an aspiring software engineer and the creator of casatrain.</div>
                     <div>I am currently a Junior at the University of Michigan studying CS and Math. I enjoy using my problem solving and programming abilities to create projects that provide a positive impact to communities, like casatrain!</div>
                     <div>Fun Fact: Born in Brighton, England, I was raised in Tokyo and Honolulu, and studied abroad in Argentina.</div>
                     <div>
